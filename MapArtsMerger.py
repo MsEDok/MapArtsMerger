@@ -77,7 +77,7 @@ class ImageMerger:
         self.blank_image = ImageTk.PhotoImage(Image.new("RGB", (self.preview_size, self.preview_size), "white"))
 
         max_images = self.row_count * self.col_count
-        files = sorted(filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")]),
+        files = sorted(filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp")]),
                        key=self.extract_number)
 
         if len(files) > max_images:
@@ -129,7 +129,7 @@ class ImageMerger:
             self.replace_image(idx)
 
     def replace_image(self, idx):
-        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp")])
         if file_path:
             self.image_cache.pop(self.images[idx], None)
             self.images[idx] = file_path
