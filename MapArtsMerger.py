@@ -178,7 +178,7 @@ class ImageMerger:
                                                  filetypes=[("WEBP files", "*.webp")],
                                                  initialfile=f"[{map_id}]-{map_name}")
         if save_path:
-            merged.save(save_path)
+            merged.save(save_path, "WEBP", lossless=True)
             messagebox.showinfo("Success", "Image merged successfully!")
 
 def on_closing():
