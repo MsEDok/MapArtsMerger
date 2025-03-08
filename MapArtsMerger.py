@@ -174,8 +174,8 @@ class ImageMerger:
             img = Image.open(img_path).resize((128, 128)) if img_path else Image.new("RGB", (128, 128), "white")
             merged.paste(img, ((i % self.col_count) * 128, (i // self.col_count) * 128))
 
-        save_path = filedialog.asksaveasfilename(defaultextension=".png",
-                                                 filetypes=[("PNG files", "*.png")],
+        save_path = filedialog.asksaveasfilename(defaultextension=".webp",
+                                                 filetypes=[("WEBP files", "*.webp")],
                                                  initialfile=f"[{map_id}]-{map_name}")
         if save_path:
             merged.save(save_path)
