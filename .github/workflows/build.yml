@@ -24,22 +24,33 @@ jobs:
           python -m pip install --upgrade pip
           if (Test-Path requirements.txt) { pip install -r requirements.txt }
 
-      - name: Build executable
+      - name: Build MapArtsMerger executable
         run: pyinstaller --onefile --windowed --icon=icon.ico MapArtsMerger.py
 
-      - name: Upload artifact
+      - name: Build ImageToWEBP executable
+        run: pyinstaller --onefile --windowed --icon=icon.ico ImageToWEBP.py
+
+      - name: Upload MapArtsMerger artifact
         uses: actions/upload-artifact@v4
         with:
-          name: built-app
+          name: MapArtsMerger
           path: dist/MapArtsMerger.exe
+
+      - name: Upload ImageToWEBP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageToWEBP
+          path: dist/ImageToWEBP.exe
 
       - name: Release artifact
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/MapArtsMerger.exe
+          files: |
+            dist/MapArtsMerger.exe
+            dist/ImageToWEBP.exe
           tag_name: latest
           name: Latest Release
-          body: "Automated release of the latest version."
+          body: "Automated release of the latest versions of MapArtsMerger and ImageToWEBP."
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
