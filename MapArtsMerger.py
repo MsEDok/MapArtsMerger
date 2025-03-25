@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 class ImageMerger:
     def __init__(self, root):
@@ -77,7 +77,7 @@ class ImageMerger:
         self.blank_image = ImageTk.PhotoImage(Image.new("RGB", (self.preview_size, self.preview_size), "white"))
 
         max_images = self.row_count * self.col_count
-        files = sorted(filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp")]),
+        files = sorted(filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.webp")]),
                        key=self.extract_number)
 
         if len(files) > max_images:
@@ -94,7 +94,9 @@ class ImageMerger:
             return self.image_cache[img_path]
 
         if img_path:
-            img = Image.open(img_path).resize((size, size))
+            img = Image.open(img_path)
+            img = img.convert("RGBA" if img.mode in ("P", "CMYK") else "RGB")
+            img = img.resize((size, size))
             img_tk = ImageTk.PhotoImage(img)
             self.image_cache[img_path] = img_tk
             return img_tk
@@ -129,7 +131,7 @@ class ImageMerger:
             self.replace_image(idx)
 
     def replace_image(self, idx):
-        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp")])
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.webp")])
         if file_path:
             self.image_cache.pop(self.images[idx], None)
             self.images[idx] = file_path
@@ -171,14 +173,17 @@ class ImageMerger:
 
         merged = Image.new("RGB", (self.col_count * 128, self.row_count * 128))
         for i, img_path in enumerate(self.images):
-            img = Image.open(img_path).resize((128, 128)) if img_path else Image.new("RGB", (128, 128), "white")
+            img = Image.open(img_path) if img_path else Image.new("RGB", (128, 128), "white")
+            img = img.convert("RGBA" if img.mode in ("P", "CMYK") else "RGB")
+            img = img.resize((128, 128))
             merged.paste(img, ((i % self.col_count) * 128, (i // self.col_count) * 128))
 
         save_path = filedialog.asksaveasfilename(defaultextension=".webp",
                                                  filetypes=[("WEBP files", "*.webp")],
                                                  initialfile=f"[{map_id}]-{map_name}")
         if save_path:
-            merged.save(save_path, "WEBP", lossless=True)
+            icc_profile = merged.info.get("icc_profile")
+            merged.save(save_path, "WEBP", lossless=True, icc_profile=icc_profile)
             messagebox.showinfo("Success", "Image merged successfully!")
 
 def on_closing():

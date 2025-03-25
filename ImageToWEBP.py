@@ -6,69 +6,86 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
 
+VERSION = "1.0.1"
 
-def convert_to_webp():
-    file_paths = filedialog.askopenfilenames(title="Select image files",
-                                             filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.tiff")])
+class ImageConverterApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title(f"Image to WebP Converter | V{VERSION}")
+        self.root.geometry("300x150")
 
-    if not file_paths:
-        return
+        self.btn_select = tk.Button(root, text="Select Images & Convert", command=self.convert_to_webp, padx=10, pady=5)
+        self.btn_select.pack(pady=10)
 
-    save_dir = filedialog.askdirectory(title="Select destination folder")
-    if not save_dir:
-        return
+        self.progress_label = tk.Label(root, text="0/0 images processed", font=("Arial", 12))
+        self.progress_label.pack(pady=5)
 
-    progress_label.config(text=f"0/{len(file_paths)} images processed")
-    time_label.config(text="Elapsed time: 0 seconds")
+        self.status_label = tk.Label(root, text="", font=("Arial", 10), fg="green")
+        self.status_label.pack(pady=5)
 
-    remaining_files = list(file_paths)
+        self.start_time = 0
+        self.completed_count = 0
+        self.num_files = 0
+        self.lock = None
 
-    start_time = time.time()
+    def convert_to_webp(self):
+        file_paths = filedialog.askopenfilenames(title="Select image files",
+                                                 filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+        if not file_paths:
+            return
 
-    def convert_image(file_path):
-        try:
-            img = Image.open(file_path)
-            file_name = os.path.splitext(os.path.basename(file_path))[0] + ".webp"
-            save_path = os.path.join(save_dir, file_name)
-            if img.format == "JPEG":
-                img.save(save_path, "webp", lossy=True)
-            else:
-                img.save(save_path, "webp", lossless=True)
+        save_dir = filedialog.askdirectory(title="Select destination folder")
+        if not save_dir:
+            return
 
-            remaining_files.remove(file_path)
-            progress_label.config(text=f"{len(file_paths) - len(remaining_files)}/{len(file_paths)} images processed")
+        self.num_files = len(file_paths)
+        self.progress_label.config(text=f"0/{self.num_files} images processed")
+        self.status_label.config(text="", fg="green")
 
-            elapsed_time = time.time() - start_time
-            time_label.config(text=f"Elapsed time: {int(elapsed_time)} seconds")
-            root.update_idletasks()
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to convert {file_path}: {e}")
+        self.start_time = time.time()
+        self.completed_count = 0
+        self.lock = None
 
-    def convert_images():
-        max_workers = os.cpu_count() // 2
+        def convert_image(file_path):
+            try:
+                img = Image.open(file_path)
+                file_name = os.path.splitext(os.path.basename(file_path))[0] + ".webp"
+                save_path = os.path.join(save_dir, file_name)
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(convert_image, file_path) for file_path in file_paths]
-            for future in futures:
-                future.result()
+                icc_profile = img.info.get("icc_profile")
 
-        total_time = time.time() - start_time
-        messagebox.showinfo("Success", f"All images have been converted to WebP.\nTotal time: {int(total_time)} seconds.")
+                if img.mode in ("P", "CMYK"):
+                    img = img.convert("RGBA" if img.mode == "P" else "RGB")
 
-    threading.Thread(target=convert_images, daemon=True).start()
+                if img.format == "JPEG":
+                    img.save(save_path, "webp", lossy=True, icc_profile=icc_profile)
+                else:
+                    img.save(save_path, "webp", lossless=True, icc_profile=icc_profile)
 
+                with self.lock:
+                    self.completed_count += 1
+                    self.update_progress()
+
+            except Exception as e:
+                print(f"Error converting {file_path}: {e}")
+
+        def run_conversion():
+            self.lock = threading.Lock()
+            max_workers = max(1, os.cpu_count() // 2)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                executor.map(convert_image, file_paths)
+
+            self.show_completion_message()
+
+        threading.Thread(target=run_conversion, daemon=True).start()
+
+    def update_progress(self):
+        self.progress_label.config(text=f"{self.completed_count}/{self.num_files} images processed")
+
+    def show_completion_message(self):
+        total_time = int(time.time() - self.start_time)
+        self.root.after(0, lambda: self.status_label.config(text=f"Conversion completed in {total_time} seconds!", fg="blue"))
 
 root = tk.Tk()
-root.title("Image to WebP Converter")
-root.geometry("300x150")
-
-btn_select = tk.Button(root, text="Select Images & Convert", command=convert_to_webp, padx=10, pady=5)
-btn_select.pack(pady=10)
-
-progress_label = tk.Label(root, text="0/0 images processed", font=("Arial", 12))
-progress_label.pack(pady=5)
-
-time_label = tk.Label(root, text="Elapsed time: 0 seconds", font=("Arial", 10))
-time_label.pack(pady=5)
-
+app = ImageConverterApp(root)
 root.mainloop()
