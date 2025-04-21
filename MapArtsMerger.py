@@ -13,6 +13,7 @@ class ImageMerger:
         self.map_id_entry = None
         self.row_entry = None
         self.col_entry = None
+        self.nsfw_var = tk.BooleanVar()
         self.root = root
         self.images = []
         self.labels = []
@@ -44,6 +45,8 @@ class ImageMerger:
         tk.Label(frame, text="MapName:").grid(row=3, column=0)
         self.map_name_entry = tk.Entry(frame)
         self.map_name_entry.grid(row=3, column=1)
+
+        tk.Checkbutton(frame, text="NSFW", variable=self.nsfw_var).grid(row=4, column=0, columnspan=2)
 
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=10)
@@ -178,9 +181,13 @@ class ImageMerger:
             img = img.resize((128, 128))
             merged.paste(img, ((i % self.col_count) * 128, (i // self.col_count) * 128))
 
+        filename = f"[{map_id}]-{map_name}"
+        if self.nsfw_var.get():
+            filename += "_nsfw"
+
         save_path = filedialog.asksaveasfilename(defaultextension=".webp",
                                                  filetypes=[("WEBP files", "*.webp")],
-                                                 initialfile=f"[{map_id}]-{map_name}")
+                                                 initialfile=filename)
         if save_path:
             icc_profile = merged.info.get("icc_profile")
             merged.save(save_path, "WEBP", lossless=True, icc_profile=icc_profile)
