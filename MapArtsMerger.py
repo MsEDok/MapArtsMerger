@@ -181,7 +181,7 @@ class ImageMerger:
             img = img.resize((128, 128))
             merged.paste(img, ((i % self.col_count) * 128, (i // self.col_count) * 128))
 
-        filename = f"[{map_id}]-{map_name}"
+        filename = f"{map_id}-{map_name}"
         if self.nsfw_var.get():
             filename += "_nsfw"
 
